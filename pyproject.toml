@@ -1,0 +1,27 @@
+[project]
+name = "arcsatisfied"
+version = "0.1.0"
+description = "Quick CCD reduction and catalog enrichment for APO ARCSAT FITS data."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "astropy>=5.3",
+    "astroquery>=0.4.6",
+    "astroscrappy>=1.1",
+    "numpy>=1.23",
+    "pandas>=1.5",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=7.0"]
+
+[project.scripts]
+arcsatisfied = "arcsatisfied.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+pythonpath = ["src"]
