@@ -43,6 +43,11 @@ Project-specific deviations to preserve when updating:
   lowest-dependency matrix, or custom email/Slack notifications.
 - Explicit setuptools >=77.0.3 for SPDX metadata, setuptools-scm >=8, generated
   `_version.py`, and archive substitutions. Never commit the generated version.
+  `.git_archival.txt` omits the bare `node` field so an archive without tags uses
+  `fallback_version = "0.1.dev0"` instead of upstream's misleading `0.0`.
+  Tagged archives still use `describe-name`/`ref-names`; sdists retain their exact
+  metadata version. For exact development versions, build from a Git checkout
+  or its sdist, since an untagged archive cannot recover commit distance.
 - Installed-package tests have no `pythonpath` override. CI tests Linux 3.10–3.14
   and macOS 3.12. Documentation and packaging use 3.12; all build checkouts fetch
   full history and tags. Doctest collection is not enabled for CLI examples.

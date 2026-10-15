@@ -50,6 +50,8 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
+# A source archive without tags cannot recover commit distance. Never label it a release.
+fallback_version = "0.1.dev0"
 write_to = "src/arcsatisfied/_version.py"
 
 [tool.setuptools.packages.find]
