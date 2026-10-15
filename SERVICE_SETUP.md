@@ -52,7 +52,14 @@ As of 2026-10-14:
   sign-in is required to import the project and verify hosted builds.
 - PyPI: release workflow is ready; account sign-in is required to save the pending
   publisher. No PyPI publisher has yet been saved, and no package was uploaded.
-- Codecov: OIDC upload is configured; live upload verification awaits GitHub CI.
+- Codecov: the GitHub CI test step passes, but the OIDC upload is rejected with
+  `Repository not found`. Sign in to Codecov with GitHub, enable this repository,
+  and rerun the failed job to verify the coverage report before merging.
+- Local verification: 11 tests pass; wheel and sdist each pass all 11 tests in
+  fresh environments outside the checkout; strict Twine and pre-commit pass.
+- GitHub verification: test steps pass on all five Linux Python versions and
+  macOS 3.12; distribution, documentation, and lint jobs pass. The Linux 3.12
+  job remains red solely because the subsequent Codecov upload is rejected.
 
 Keep the migration PR open until the remaining service setup is verified; do not
 represent configuration files as evidence of a successful hosted deployment.

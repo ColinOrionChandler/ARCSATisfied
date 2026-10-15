@@ -1,0 +1,8 @@
+/* Wrap API summary descriptions instead of hiding them behind horizontal scrolling. */
+.wy-table-responsive table td,
+.wy-table-responsive table th {
+    white-space: normal;
+}
+.wy-table-responsive table td p {
+    overflow-wrap: anywhere;
+}

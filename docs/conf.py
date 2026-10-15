@@ -15,6 +15,8 @@ extensions = [
     "myst_parser",
 ]
 html_theme = "sphinx_rtd_theme"
+html_static_path = ["_static"]
+html_css_files = ["custom.css"]
 html_theme_options = {"navigation_depth": 3}
 exclude_patterns = ["_build"]
 autoapi_dirs = [str(Path(__file__).resolve().parents[1] / "src")]
