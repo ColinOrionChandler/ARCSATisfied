@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import json
 import csv
+import json
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any
@@ -31,13 +31,18 @@ def _apply_reduction_results(catalog: pd.DataFrame, results: list[Any]) -> pd.Da
 def _apply_astap_results(catalog: pd.DataFrame, results: list[Any]) -> pd.DataFrame:
     updated = catalog.copy()
     for result in results:
-        mask = updated["reduced_path"].astype(str).map(lambda value: Path(value).name if value else "") == result.source_filename
+        mask = (
+            updated["reduced_path"].astype(str).map(lambda value: Path(value).name if value else "")
+            == result.source_filename
+        )
         updated.loc[mask, "astap_status"] = result.status
         updated.loc[mask, "astap_error"] = result.error
     return updated
 
 
-def _apply_horizons_status(catalog: pd.DataFrame, results: pd.DataFrame, failures: pd.DataFrame) -> pd.DataFrame:
+def _apply_horizons_status(
+    catalog: pd.DataFrame, results: pd.DataFrame, failures: pd.DataFrame
+) -> pd.DataFrame:
     updated = catalog.copy()
     for frame, status in ((results, "ok"), (failures, "error")):
         if frame.empty or "catalog_index" not in frame:
@@ -84,6 +89,7 @@ def run_pipeline(
     astap_path: str | Path | None = None,
     astap_timeout: int = 120,
 ) -> dict[str, Any]:
+    """Catalog, calibrate, and optionally enrich and solve a night of FITS data."""
     input_root = Path(input_dir).expanduser().resolve()
     if not input_root.is_dir():
         raise NotADirectoryError(f"Input directory does not exist: {input_root}")
@@ -109,7 +115,9 @@ def run_pipeline(
     _write_dict_rows(logs_dir / "reduction_results.csv", [asdict(result) for result in reduction_results])
     catalog = _apply_reduction_results(catalog, reduction_results)
 
-    reduced_paths = [Path(result.reduced_path) for result in reduction_results if result.reduced_path is not None]
+    reduced_paths = [
+        Path(result.reduced_path) for result in reduction_results if result.reduced_path is not None
+    ]
     astap_results = run_astap_on_files(
         reduced_paths,
         astap_path=astap_path,

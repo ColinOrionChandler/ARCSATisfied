@@ -12,7 +12,6 @@ import pandas as pd
 from astropy.io import fits
 from astropy.time import Time, TimeDelta
 
-
 FITS_SUFFIXES = (".fits", ".fit", ".fts", ".fits.fz", ".fit.fz")
 DEFAULT_IGNORE_DIRS = {".git", "__pycache__", ".pytest_cache", "reduced"}
 OBJECT_KEYS = ("OBJECT", "OBJNAME", "OBJCTNAM", "OBJCTNAME", "TARGET", "TARGNAME")
@@ -56,11 +55,14 @@ CATALOG_COLUMNS = [
 
 @dataclass(frozen=True)
 class HeaderRecord:
+    """Catalog fields and original header metadata extracted from one FITS file."""
+
     row: dict[str, Any]
     header_record: dict[str, Any]
 
 
 def discover_fits(input_dir: str | Path, ignore_dirs: set[str] | None = None) -> list[Path]:
+    """Find FITS files recursively while excluding designated directories."""
     root = Path(input_dir).expanduser().resolve()
     ignored = {part.lower() for part in (ignore_dirs or DEFAULT_IGNORE_DIRS)}
     paths: list[Path] = []
@@ -75,6 +77,7 @@ def discover_fits(input_dir: str | Path, ignore_dirs: set[str] | None = None) ->
 
 
 def text_value(value: Any) -> str:
+    """Convert a header value to stripped text, treating missing values as empty."""
     if value is None:
         return ""
     if hasattr(value, "item"):
@@ -88,6 +91,7 @@ def text_value(value: Any) -> str:
 
 
 def json_safe_value(value: Any) -> Any:
+    """Convert header values to JSON-compatible representations."""
     if hasattr(value, "item"):
         try:
             value = value.item()
@@ -103,6 +107,7 @@ def json_safe_value(value: Any) -> Any:
 
 
 def first_header_text(header: fits.Header, keys: tuple[str, ...]) -> str:
+    """Return the first nonempty text value among candidate header keywords."""
     for key in keys:
         value = text_value(header.get(key))
         if value:
@@ -111,6 +116,7 @@ def first_header_text(header: fits.Header, keys: tuple[str, ...]) -> str:
 
 
 def normalize_frame_type(header: fits.Header) -> str:
+    """Map common image-type header labels to calibration or science types."""
     raw = first_header_text(header, ("IMAGETYP", "IMAGTYPE", "DATA-TYP")).upper()
     if raw in {"BIAS", "ZERO"}:
         return "BIAS"
@@ -124,6 +130,7 @@ def normalize_frame_type(header: fits.Header) -> str:
 
 
 def parse_start_time(header: fits.Header) -> Time | None:
+    """Parse the observation start time from supported FITS keywords."""
     date_obs = text_value(header.get("DATE-OBS"))
     time_obs = text_value(header.get("TIME-OBS") or header.get("UT"))
     candidates = []
@@ -143,6 +150,7 @@ def parse_start_time(header: fits.Header) -> Time | None:
 
 
 def midpoint_values(header: fits.Header) -> tuple[str, str]:
+    """Return exposure-midpoint time values derived from the header."""
     start = parse_start_time(header)
     if start is None:
         return "", ""
@@ -152,6 +160,7 @@ def midpoint_values(header: fits.Header) -> tuple[str, str]:
 
 
 def binning_value(header: fits.Header) -> str:
+    """Read detector binning from standard or ARCSAT header keywords."""
     ccdsum = text_value(header.get("CCDSUM"))
     if ccdsum:
         parts = [part for part in re.split(r"[xX,\s]+", ccdsum) if part]
@@ -166,6 +175,7 @@ def binning_value(header: fits.Header) -> str:
 
 
 def load_object_map(path: str | Path | None) -> dict[str, str]:
+    """Load explicit filename or object-label mappings to Horizons query names."""
     if path is None:
         return {}
     mapping_path = Path(path).expanduser()
@@ -193,6 +203,7 @@ def load_object_map(path: str | Path | None) -> dict[str, str]:
 
 
 def infer_horizons_name(path: Path, header_object: str, object_map: dict[str, str] | None = None) -> str:
+    """Resolve an explicit mapping, header label, or filename-derived name."""
     object_map = object_map or {}
     if path.name.casefold() in object_map:
         return object_map[path.name.casefold()]
@@ -210,6 +221,7 @@ def infer_horizons_name(path: Path, header_object: str, object_map: dict[str, st
 
 
 def read_image_header(path: str | Path) -> fits.Header:
+    """Read a copied header from the first image HDU."""
     with fits.open(path, memmap=False, ignore_missing_end=True) as hdul:
         hdul.verify("fix")
         for hdu in hdul:
@@ -219,6 +231,7 @@ def read_image_header(path: str | Path) -> fits.Header:
 
 
 def catalog_record(path: str | Path, object_map: dict[str, str] | None = None) -> HeaderRecord:
+    """Extract catalog fields and original header metadata for one image."""
     filepath = Path(path).expanduser().resolve()
     row = {column: "" for column in CATALOG_COLUMNS}
     row["filepath"] = str(filepath)
@@ -285,7 +298,10 @@ def catalog_record(path: str | Path, object_map: dict[str, str] | None = None) -
     return HeaderRecord(row=row, header_record=header_record)
 
 
-def catalog_directory(input_dir: str | Path, object_map_path: str | Path | None = None) -> tuple[pd.DataFrame, list[dict[str, Any]]]:
+def catalog_directory(
+    input_dir: str | Path, object_map_path: str | Path | None = None
+) -> tuple[pd.DataFrame, list[dict[str, Any]]]:
+    """Catalog FITS images in a directory with optional target-name overrides."""
     object_map = load_object_map(object_map_path)
     records = [catalog_record(path, object_map) for path in discover_fits(input_dir)]
     rows = [record.row for record in records]
@@ -293,7 +309,10 @@ def catalog_directory(input_dir: str | Path, object_map_path: str | Path | None 
     return pd.DataFrame(rows, columns=CATALOG_COLUMNS), headers
 
 
-def write_catalog(frame: pd.DataFrame, header_records: list[dict[str, Any]], catalog_dir: str | Path) -> tuple[Path, Path]:
+def write_catalog(
+    frame: pd.DataFrame, header_records: list[dict[str, Any]], catalog_dir: str | Path
+) -> tuple[Path, Path]:
+    """Write the CSV catalog and JSONL original-header archive."""
     catalog_path = Path(catalog_dir)
     catalog_path.mkdir(parents=True, exist_ok=True)
     csv_path = catalog_path / "arcsat_catalog.csv"
@@ -307,4 +326,5 @@ def write_catalog(frame: pd.DataFrame, header_records: list[dict[str, Any]], cat
 
 
 def science_rows(frame: pd.DataFrame) -> pd.DataFrame:
+    """Select science exposures from a catalog."""
     return frame[frame["frame_type"].astype(str).str.upper() == "LIGHT"].copy()
