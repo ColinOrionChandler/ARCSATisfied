@@ -12,6 +12,8 @@ from astropy.stats import sigma_clip
 
 @dataclass(frozen=True)
 class CalibrationProducts:
+    """Paths to the master bias, dark rate, and per-filter flat products."""
+
     bias_path: Path | None
     dark_rate_path: Path | None
     flat_paths: dict[str, Path]
@@ -19,6 +21,8 @@ class CalibrationProducts:
 
 @dataclass(frozen=True)
 class ReductionResult:
+    """Reduction outcome and output path for a single source image."""
+
     source_filename: str
     reduced_path: Path | None
     status: str
@@ -26,11 +30,13 @@ class ReductionResult:
 
 
 def safe_token(value: Any) -> str:
+    """Convert a value to a filename-safe calibration token."""
     text = str(value).strip() or "unknown"
     return "".join(ch if ch.isalnum() or ch in ("-", "_", ".") else "_" for ch in text)
 
 
 def read_data_header(path: str | Path) -> tuple[np.ndarray, fits.Header]:
+    """Read the first image HDU as float32 data with a copied header."""
     with fits.open(path, memmap=False, ignore_missing_end=True) as hdul:
         hdul.verify("fix")
         for hdu in hdul:
@@ -63,7 +69,10 @@ def _rows(frame: pd.DataFrame, frame_type: str) -> pd.DataFrame:
     return frame[frame["frame_type"].astype(str).str.upper() == frame_type].copy()
 
 
-def build_calibrations(catalog: pd.DataFrame, cals_dir: str | Path, overwrite: bool = False) -> CalibrationProducts:
+def build_calibrations(
+    catalog: pd.DataFrame, cals_dir: str | Path, overwrite: bool = False
+) -> CalibrationProducts:
+    """Build or reuse a master bias, dark rate, and normalized flats."""
     cals_root = Path(cals_dir)
     bias_rows = _rows(catalog, "BIAS")
     dark_rows = _rows(catalog, "DARK")
@@ -146,6 +155,7 @@ def reduce_science_frames(
     overwrite: bool = False,
     cosmic_rays: bool = True,
 ) -> list[ReductionResult]:
+    """Calibrate LIGHT frames and record individual successes or errors."""
     data_root = Path(data_dir)
     science = _rows(catalog, "LIGHT")
     results: list[ReductionResult] = []
