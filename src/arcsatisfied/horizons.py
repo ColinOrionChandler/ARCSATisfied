@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import pandas as pd
 from astropy.time import Time
-
 
 DEFAULT_SITE_CODE = "705"
 HORIZONS_MAX_EPOCHS_PER_QUERY = 10
@@ -14,6 +14,8 @@ HORIZONS_MAX_EPOCHS_PER_QUERY = 10
 
 @dataclass(frozen=True)
 class HorizonsOutputs:
+    """Successful ephemerides and per-image query failures."""
+
     results: pd.DataFrame
     failures: pd.DataFrame
 
@@ -31,6 +33,7 @@ def query_horizons_for_catalog(
     horizons_cls: Callable[..., Any] | None = None,
     cache: bool = False,
 ) -> HorizonsOutputs:
+    """Query science exposure ephemerides and collect per-image failures."""
     if horizons_cls is None:
         from astroquery.jplhorizons import Horizons
 
@@ -132,6 +135,7 @@ def query_horizons_for_catalog(
 
 
 def write_horizons_outputs(outputs: HorizonsOutputs, catalog_dir: str | Path) -> tuple[Path, Path]:
+    """Write successful ephemerides and failure records to CSV files."""
     root = Path(catalog_dir)
     root.mkdir(parents=True, exist_ok=True)
     results_path = root / "horizons_catalog.csv"

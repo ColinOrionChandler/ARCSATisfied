@@ -121,7 +121,7 @@ class FakeHorizons:
             raise RuntimeError("unknown target")
 
         class Table:
-            def to_pandas(self_nonlocal):
+            def to_pandas(self_nonlocal):  # noqa: N805 - the fixture closes over outer self.
                 return pd.DataFrame(
                     [
                         {

@@ -3,14 +3,15 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Sequence
 
 from .horizons import DEFAULT_SITE_CODE
 from .pipeline import run_pipeline
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build the command-line parser for ARCSAT reduction."""
     parser = argparse.ArgumentParser(
         prog="arcsatisfied",
         description="Quick CCD reduction and catalog enrichment for APO ARCSAT FITS data.",
@@ -28,19 +29,28 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         help="Output root. Defaults to INPUT_DIR/reduced.",
     )
-    reduce_parser.add_argument("--object-map", type=Path, help="Optional CSV mapping objects or filenames to Horizons names.")
+    reduce_parser.add_argument(
+        "--object-map", type=Path, help="Optional CSV mapping objects or filenames to Horizons names."
+    )
     reduce_parser.add_argument("--overwrite", action="store_true", help="Overwrite existing products.")
-    reduce_parser.add_argument("--no-cosmic-rays", action="store_true", help="Disable astroscrappy cosmic-ray cleaning.")
+    reduce_parser.add_argument(
+        "--no-cosmic-rays", action="store_true", help="Disable astroscrappy cosmic-ray cleaning."
+    )
     reduce_parser.add_argument("--skip-horizons", action="store_true", help="Skip JPL Horizons queries.")
-    reduce_parser.add_argument("--site-code", default=DEFAULT_SITE_CODE, help="Horizons observer location code.")
+    reduce_parser.add_argument(
+        "--site-code", default=DEFAULT_SITE_CODE, help="Horizons observer location code."
+    )
     reduce_parser.add_argument("--horizons-id-type", default="smallbody", help="Astroquery Horizons id_type.")
     reduce_parser.add_argument("--skip-astap", action="store_true", help="Skip ASTAP WCS solving.")
     reduce_parser.add_argument("--astap-path", type=Path, help="Explicit ASTAP executable path.")
-    reduce_parser.add_argument("--astap-timeout", type=int, default=120, help="Per-file ASTAP timeout in seconds.")
+    reduce_parser.add_argument(
+        "--astap-timeout", type=int, default=120, help="Per-file ASTAP timeout in seconds."
+    )
     return parser
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """Run the selected command and return its process exit status."""
     args = build_parser().parse_args(argv)
     if args.command == "reduce":
         try:

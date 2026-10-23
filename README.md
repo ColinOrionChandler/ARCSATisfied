@@ -1,32 +1,54 @@
 # ARCSATisfied
-Data reduction for the APO ARCSAT
 
-## Quick Start
+Quick CCD reduction and catalog enrichment for APO ARCSAT FITS data.
+
+## Install and run
+
+Python 3.10+ is required. Install from a clone of this repository:
 
 ```bash
-python -m pip install -e ".[test]"
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install .
 arcsatisfied reduce /path/to/arcsat/night
 ```
 
-By default, products are written beside the input night in `reduced/`:
-
-- `data/`: reduced science FITS files
-- `cals/`: master bias, dark-rate, and per-filter flats
-- `catalog/`: FITS header catalog, header JSONL archive, and Horizons CSVs
-- `logs/`: run summary plus reduction and ASTAP result logs
-
-Useful development/validation form:
+An offline run with explicit output location:
 
 ```bash
-env PYTHONPATH=src /Users/colinchandler/opt/anaconda3/envs/COC/bin/python \
-  -m arcsatisfied reduce /path/to/arcsat/night \
-  --output-dir /private/tmp/arcsatisfied_smoke \
-  --overwrite --no-cosmic-rays --skip-astap
+python -m arcsatisfied reduce /path/to/arcsat/night \
+  --output-dir /path/to/output \
+  --skip-horizons --skip-astap --no-cosmic-rays
 ```
 
-The reducer classifies ARCSAT frames from `IMAGETYP`, builds sigma-clipped
-master calibrations, reduces `LIGHT` images, preserves FITS headers, and
-records per-file provenance. Horizons enrichment is enabled by default using
-Apache Point Observatory site code `705`; use `--skip-horizons` to stay fully
-offline. ASTAP WCS solving is enabled by default when pointing metadata is
-present; per-file ASTAP failures are logged and do not stop the run.
+Products default to `INPUT_DIR/reduced/`: `data/` contains reduced science FITS,
+`cals/` contains master calibrations, `catalog/` contains header and Horizons
+records, and `logs/` contains summaries and per-file results. Inspect those
+results for individual failures. Existing products are reused unless
+`--overwrite` is requested.
+
+The reducer classifies frames from `IMAGETYP`, builds sigma-clipped master
+calibrations, and preserves FITS headers with added provenance. Supply compatible
+calibrations for the science frames' shape and binning. Horizons queries use APO
+site code `705` by default. ASTAP and its star catalog are separate installations;
+use `--astap-path` or put `astap` on `PATH`. Missing or failed solutions are logged.
+
+Run `arcsatisfied reduce --help` for all options. See the
+[usage guide](docs/usage.rst), [development guide](DEVELOPMENT_GUIDE.md), and
+[service and release setup](SERVICE_SETUP.md).
+
+## Development
+
+```bash
+python -m pip install -e '.[dev]'
+python -m pip install -r docs/requirements.txt
+pre-commit install
+python -m pytest
+pre-commit run --all-files
+python -m sphinx -W --keep-going -b html docs docs/_build/html
+```
+
+The existing `.[test]` extra remains available for test-only environments.
+Packaging and automation are based on the
+[LINCC Frameworks Python Project Template](https://github.com/lincc-frameworks/python-project-template)
+v2.3.0, tracked through Copier. Licensed under [BSD-3-Clause](LICENSE).

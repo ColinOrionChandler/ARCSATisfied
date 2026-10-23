@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import shutil
 import subprocess
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
 
 from astropy.io import fits
-
 
 ASTAP_CANDIDATES = (
     "/Applications/ASTAP.app/Contents/MacOS/astap",
@@ -17,6 +16,8 @@ ASTAP_CANDIDATES = (
 
 @dataclass(frozen=True)
 class AstapResult:
+    """ASTAP invocation status, diagnostics, and command for one image."""
+
     source_filename: str
     status: str
     error: str = ""
@@ -24,6 +25,7 @@ class AstapResult:
 
 
 def find_astap(explicit: str | Path | None = None) -> Path | None:
+    """Find an explicit ASTAP executable or search configured local locations."""
     if explicit:
         path = Path(explicit).expanduser()
         return path if path.exists() else None
@@ -38,13 +40,13 @@ def find_astap(explicit: str | Path | None = None) -> Path | None:
 
 
 def has_pointing_metadata(path: str | Path) -> bool:
+    """Check whether a FITS header contains usable RA/Dec keyword pairs."""
     try:
         header = fits.getheader(path)
     except Exception:
         return False
     return bool(
-        (header.get("RA") and header.get("DEC"))
-        or (header.get("OBJCTRA") and header.get("OBJCTDEC"))
+        (header.get("RA") and header.get("DEC")) or (header.get("OBJCTRA") and header.get("OBJCTDEC"))
     )
 
 
@@ -56,6 +58,7 @@ def run_astap_on_files(
     enabled: bool = True,
     runner: Callable[..., subprocess.CompletedProcess[str]] | None = None,
 ) -> list[AstapResult]:
+    """Run ASTAP on each eligible image and record failures without aborting."""
     if not enabled:
         return [AstapResult(path.name, "skipped", "ASTAP disabled") for path in paths]
     executable = find_astap(astap_path)
